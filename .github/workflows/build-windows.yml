@@ -62,12 +62,15 @@ jobs:
           -p:IncludeNativeLibrariesForSelfExtract=true
           -p:EnableCompressionInSingleFile=${{ matrix.compression }}
           --output .\publish\${{ matrix.variant }}
+      - name: Rename executable for a unique release filename
+        shell: pwsh
+        run: Rename-Item ".\publish\${{ matrix.variant }}\GalaxyClient.exe" "GalaxyClient-${{ matrix.variant }}.exe"
       - name: Upload single-file executable
         if: ${{ matrix.single_file }}
         uses: actions/upload-artifact@v4
         with:
           name: GalaxyClient-${{ matrix.variant }}
-          path: publish/${{ matrix.variant }}/GalaxyClient.exe
+          path: publish/${{ matrix.variant }}/GalaxyClient-${{ matrix.variant }}.exe
           if-no-files-found: error
           retention-days: 30
       - name: Upload folder package
@@ -92,4 +95,4 @@ jobs:
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${{ github.ref_name }}" release-assets/*/* --title "Galaxy Client ${{ github.ref_name }}" --generate-notes
+        run: gh release create "${{ github.ref_name }}" release-assets/*/* --title "Galaxy Client ${{ github.ref_name }}" --generate-notes --prerelease
