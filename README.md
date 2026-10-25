@@ -1,0 +1,2 @@
+# GalaxyClient
+Minecraft Launcher
