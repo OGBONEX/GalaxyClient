@@ -24,12 +24,13 @@ public partial class MainWindow : Window
     private MinecraftManifest? _manifest;
     private JELoginHandler? _loginHandler;
     private MSession? _microsoftSession;
-    private bool _initializing;
-    private bool _launching;
+    private bool _initializing;    private bool _launching;
+    private readonly DiscordPresence _discordPresence = new();
 
     public MainWindow()
-    {
-        InitializeComponent();
+    {        InitializeComponent();
+        _discordPresence.Start();
+        Closed += async (_, _) => await _discordPresence.DisposeAsync();
         Loaded += (_, _) => _ = CheckForUpdatesAsync(autoInstall: true);
         Loaded += async (_, _) =>
         {
@@ -139,9 +140,14 @@ public partial class MainWindow : Window
                 GameLauncherVersion = "0.1.0"
             });
             process.EnableRaisingEvents = true;
-            process.Exited += (_, _) => Dispatcher.Invoke(() => VersionStatus.Text = $"Minecraft {version.Id} closed.");
+            process.Exited += (_, _) => Dispatcher.Invoke(() =>
+            {
+                VersionStatus.Text = $"Minecraft {version.Id} closed.";
+                _discordPresence.SetActivity("Browsing Galaxy Client", "Minecraft Java Launcher");
+            });
             process.Start();
             var profileName = _microsoftSession?.Username ?? username;
+            _discordPresence.SetActivity($"Playing Minecraft {version.Id}", $"As {profileName}");
             VersionStatus.Text = $"Minecraft {version.Id} launched as {profileName}.";
         }
         catch (Exception ex)
