@@ -238,4 +238,31 @@ public partial class MainWindow : Window
     }
 
     private sealed record ModrinthProject(string Title, string Summary, string Meta, string Url);
+}public partial class MainWindow : Window
+{
+    private async void CheckForUpdates_Click(object sender, RoutedEventArgs e) => await CheckForUpdatesAsync(autoInstall: false);
+
+    private async Task CheckForUpdatesAsync(bool autoInstall)
+    {
+        try
+        {
+            var update = await UpdateService.FindUpdateAsync();
+            if (update is null)
+            {
+                if (!autoInstall) VersionStatus.Text = $"Galaxy Client {UpdateService.CurrentVersion} is up to date.";
+                return;
+            }
+            if (!autoInstall && MessageBox.Show(this, $"Galaxy Client {update.TagName} is ready. Download and install it now? The launcher will restart.", "Galaxy Client update", MessageBoxButton.YesNo, MessageBoxImage.Information) != MessageBoxResult.Yes)
+                return;
+            VersionStatus.Text = $"Downloading Galaxy Client {update.TagName}…";
+            await UpdateService.DownloadVerifyAndStageAsync(update);
+            VersionStatus.Text = "Update verified. Restarting Galaxy Client…";
+        }
+        catch (Exception ex)
+        {
+            VersionStatus.Text = "Could not check or install the update.";
+            if (!autoInstall) MessageBox.Show(this, ex.Message, "Galaxy Client update", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+    }
+
 }
