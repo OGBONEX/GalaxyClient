@@ -1,28 +1,35 @@
 # Galaxy Client
 
-A Windows desktop launcher project for Minecraft Java. This first slice adds a WPF desktop shell; it does **not** yet authenticate accounts, install or launch game files, connect Discord, or apply launcher updates.
+A Windows desktop launcher for Minecraft Java. Galaxy Client is early access and is actively being built.
 
-## Requirements
+## What works now
+
+- Browse official Minecraft Java releases and snapshots.
+- Install and launch vanilla Minecraft in a Galaxy-specific folder under your Windows local app data.
+- Start a clearly labeled offline profile. Offline mode does not authenticate you or grant access to online-mode servers.
+- Search Modrinth mods, modpacks, resource packs, data packs, and shaders, then open project pages in your browser.
+- Build six Windows packages with GitHub Actions: x64 portable, x64 framework-dependent, x86 portable, ARM64 portable, x64 uncompressed, and x64 folder package.
+
+## Still being built
+
+Microsoft account sign-in, Modrinth downloads and installs, Discord Rich Presence, and in-app update download, verification, safe replacement, restart, and rollback are not implemented yet. The version-tag workflow is ready to build and attach all six packages to a GitHub Release once a version tag is published.
+
+## Download builds
+
+Open [GitHub Actions](https://github.com/OGBONEX/GalaxyClient/actions/workflows/build-windows.yml), select a successful run, and download the package matching your Windows device. Build artifacts currently expire after 30 days. A framework-dependent build requires the .NET 8 Desktop Runtime; the portable packages include the runtime.
+
+## Requirements to run from source
 
 - Windows 10 or later
 - .NET 8 SDK with Windows desktop support
 - Git
 
-## Run locally
+Run locally with:
 
 ```powershell
 dotnet run --project .\GalaxyClient.csproj
 ```
 
-## Roadmap
-
-1. Minecraft version manifest discovery, isolated game directories, and launch process management.
-2. Microsoft sign-in through the official device authorization flow; offline profiles clearly marked and limited to local use.
-3. Modrinth search and safe installs for supported project types, loaders, and game versions.
-4. Discord Rich Presence with user-controlled activity details.
-5. GitHub Releases updates with signed or checksummed packages, staged replacement, restart, and rollback.
-6. CI packaging and release workflow.
-
 ## Safety
 
-The launcher must never ask for a Microsoft password directly. Use supported account authorization and secure token storage. Offline profiles do not grant access to online-mode servers. Install game content in a Galaxy-specific directory; do not delete or automatically migrate existing Minecraft files. Never commit credentials, tokens, signing keys, or personal game data.
+Galaxy Client never asks for a Microsoft password directly. Online account support will use supported account authorization and protected token storage. Offline profiles are for local use. Game files are installed in a Galaxy-specific directory; existing Minecraft files are not deleted or migrated. Never commit credentials, tokens, signing keys, or personal game data.
