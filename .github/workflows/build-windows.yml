@@ -1,4 +1,4 @@
-name: Build Windows executable
+name: Build Windows executable variants
 
 on:
   push:
@@ -11,6 +11,30 @@ permissions:
 jobs:
   publish:
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: win-x64-portable
+            runtime: win-x64
+            self_contained: true
+            compression: true
+          - variant: win-x64-framework-dependent
+            runtime: win-x64
+            self_contained: false
+            compression: true
+          - variant: win-x86-portable
+            runtime: win-x86
+            self_contained: true
+            compression: true
+          - variant: win-arm64-portable
+            runtime: win-arm64
+            self_contained: true
+            compression: true
+          - variant: win-x64-uncompressed
+            runtime: win-x64
+            self_contained: true
+            compression: false
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -18,18 +42,21 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-      - name: Publish self-contained single-file app
+      - name: Publish ${{ matrix.variant }}
         run: >-
           dotnet publish .\GalaxyClient.csproj --configuration Release
-          --runtime win-x64 --self-contained true
+          --runtime ${{ matrix.runtime }}
+          --self-contained ${{ matrix.self_contained }}
           -p:PublishSingleFile=true
           -p:IncludeNativeLibrariesForSelfExtract=true
-          -p:EnableCompressionInSingleFile=true
-          --output .\publish
-      - name: Upload executable artifact
+          -p:EnableCompressionInSingleFile=${{ matrix.compression }}
+          --output .\publish\${{ matrix.variant }}
+      - name: Name executable variant
+        run: Copy-Item ".\publish\${{ matrix.variant }}\GalaxyClient.exe" ".\publish\GalaxyClient-${{ matrix.variant }}.exe"
+      - name: Upload executable variant
         uses: actions/upload-artifact@v4
         with:
-          name: GalaxyClient-windows-x64
-          path: publish/GalaxyClient.exe
+          name: GalaxyClient-${{ matrix.variant }}
+          path: publish/GalaxyClient-${{ matrix.variant }}.exe
           if-no-files-found: error
           retention-days: 14
