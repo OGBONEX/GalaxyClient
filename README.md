@@ -1,30 +1,25 @@
 # Galaxy Client
 
-A Windows desktop launcher for Minecraft Java. Galaxy Client is early access and is actively being built.
+A Windows launcher for Minecraft Java. Galaxy Client is an early preview.
 
-## What works now
+## Available features
 
-- Browse official Minecraft Java releases and snapshots.
-- Install and launch vanilla Minecraft in a Galaxy-specific folder under your Windows local app data.
-- Sign in through Microsoft’s supported Minecraft Java authentication flow or choose an offline profile. Microsoft sessions stay in memory and require a new sign-in each time the app is reopened.
-- Search Modrinth mods, modpacks, resource packs, data packs, and shaders, then open project pages in your browser.
-- Build six Windows packages with GitHub Actions: x64 portable, x64 framework-dependent, x86 portable, ARM64 portable, x64 uncompressed, and x64 folder package.
+- Browse Mojang's official Java Edition releases and snapshots, then install and launch vanilla Minecraft in Galaxy Client's own folder under Local AppData.
+- Sign in through Microsoft's supported Minecraft Java flow or use an offline profile. Microsoft sign-in stays in memory and must be repeated after restarting the launcher.
+- Search Modrinth mods, modpacks, resource packs, data packs, and shaders. One-click installation is still in development.
+- Show Galaxy Client and the active Minecraft version in Discord Rich Presence when Discord is running.
+- Check GitHub Releases for launcher updates, verify the release asset's SHA-256 digest before replacement, then restart with rollback handling.
+- Build six Windows packages through GitHub Actions: x64 portable, x64 framework-dependent, x86 portable, ARM64 portable, x64 uncompressed, and x64 folder package.
 
-## Still being built
+## Download
 
-One-click Modrinth downloads and installs, Discord Rich Presence, and in-app update download, verification, safe replacement, restart, and rollback are not implemented yet. Pushing a version tag such as v0.1.0 triggers a pre-release build that attaches all six uniquely named packages to a GitHub Release. No versioned release has been published yet.
+Open [Galaxy Client releases](https://github.com/OGBONEX/GalaxyClient/releases) and choose a package for your device. The win-x64-portable executable is the recommended option for most Windows PCs. The framework-dependent package requires the .NET 8 Desktop Runtime.
 
-## Download builds
+Release builds are marked as previews. New tags beginning with v build all six packages and attach them to a GitHub Release.
 
-Open [GitHub Actions](https://github.com/OGBONEX/GalaxyClient/actions/workflows/build-windows.yml), select the latest successful run, and download the package matching your Windows device. Build artifacts expire after 30 days. A framework-dependent build requires the .NET 8 Desktop Runtime; portable packages include the runtime.
+## Run from source
 
-## Requirements to run from source
-
-- Windows 10 or later
-- .NET 8 SDK with Windows desktop support
-- Git
-
-Run locally with:
+Requirements: Windows 10 or later, .NET 8 SDK with Windows desktop support, and Git.
 
 ```powershell
 dotnet run --project .\GalaxyClient.csproj
@@ -32,4 +27,4 @@ dotnet run --project .\GalaxyClient.csproj
 
 ## Safety
 
-Galaxy Client never asks you to type a Microsoft password into its own UI. Microsoft authentication is handled by CmlLib’s supported sign-in flow; account session data stays in memory. Offline profiles are for local use and do not authenticate for online-mode servers. Game files are installed in a Galaxy-specific directory; existing Minecraft files are not deleted or migrated. Never commit credentials, tokens, signing keys, or personal game data.
+Galaxy Client never asks for your Microsoft password in its own UI. Authentication is handled by CmlLib's Microsoft flow. Offline profiles cannot authenticate to online-mode servers. Game files are kept in a Galaxy-specific directory; existing Minecraft files are not deleted or migrated. Never commit credentials, tokens, signing keys, or personal game data.
