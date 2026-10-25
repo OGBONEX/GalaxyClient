@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -118,7 +119,7 @@ public partial class MainWindow : Window
         finally
         {
             _launching = false;
-            if (sender is Button button) button.IsEnabled = true;
+            if (sender is Button launchButton) launchButton.IsEnabled = true;
         }
     }
 
