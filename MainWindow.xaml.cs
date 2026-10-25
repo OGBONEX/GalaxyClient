@@ -30,6 +30,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        Loaded += (_, _) => _ = CheckForUpdatesAsync(autoInstall: true);
         Loaded += async (_, _) =>
         {
             _initializing = true;
