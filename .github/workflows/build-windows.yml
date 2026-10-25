@@ -65,6 +65,10 @@ jobs:
       - name: Rename executable for a unique release filename
         shell: pwsh
         run: Rename-Item ".\publish\${{ matrix.variant }}\GalaxyClient.exe" "GalaxyClient-${{ matrix.variant }}.exe"
+      - name: Package folder variant
+        if: ${{ !matrix.single_file }}
+        shell: pwsh
+        run: Compress-Archive -Path ".\publish\${{ matrix.variant }}\*" -DestinationPath ".\publish\${{ matrix.variant }}.zip"
       - name: Upload single-file executable
         if: ${{ matrix.single_file }}
         uses: actions/upload-artifact@v4
@@ -78,7 +82,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: GalaxyClient-${{ matrix.variant }}
-          path: publish/${{ matrix.variant }}/**
+          path: publish/${{ matrix.variant }}.zip
           if-no-files-found: error
           retention-days: 30
 
