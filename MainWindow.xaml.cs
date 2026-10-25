@@ -10,6 +10,9 @@ using System.Windows.Input;
 using CmlLib.Core;
 using CmlLib.Core.Auth;
 using CmlLib.Core.ProcessBuilder;
+using CmlLib.Core.Auth.Microsoft;
+using XboxAuthNet.Game.Accounts;
+using CmlLib.Core.Auth.Microsoft.Sessions;
 
 namespace GalaxyClient;
 
@@ -19,6 +22,8 @@ public partial class MainWindow : Window
     private const string ModrinthSearchUrl = "https://api.modrinth.com/v2/search";
     private static readonly HttpClient Http = CreateHttpClient();
     private MinecraftManifest? _manifest;
+    private JELoginHandler? _loginHandler;
+    private MSession? _microsoftSession;
     private bool _initializing;
     private bool _launching;
 
@@ -76,6 +81,31 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void MicrosoftSignIn_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button signInButton) signInButton.IsEnabled = false;
+        VersionStatus.Text = "Opening secure Microsoft sign-in…";
+        try
+        {
+            _loginHandler ??= new JELoginHandlerBuilder()
+                .WithAccountManager(new InMemoryXboxGameAccountManager(JEGameAccount.FromSessionStorage))
+                .Build();
+            _microsoftSession = await _loginHandler.AuthenticateInteractively();
+            OfflineNameBox.Text = _microsoftSession.Username ?? string.Empty;
+            VersionStatus.Text = $"Signed in as {_microsoftSession.Username}. Your sign-in stays in memory for this session.";
+        }
+        catch (Exception ex)
+        {
+            _microsoftSession = null;
+            VersionStatus.Text = "Microsoft sign-in did not complete.";
+            MessageBox.Show(this, ex.Message, "Microsoft sign-in", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        finally
+        {
+            if (sender is Button restoreButton) restoreButton.IsEnabled = true;
+        }
+    }
+
     private async void InstallAndPlay_Click(object sender, RoutedEventArgs e)
     {
         if (_launching) return;
@@ -85,7 +115,7 @@ public partial class MainWindow : Window
             return;
         }
         var username = OfflineNameBox.Text.Trim();
-        if (username.Length is < 3 or > 16 || username.Any(character => !char.IsAsciiLetterOrDigit(character) && character != '_'))
+        if (_microsoftSession is null && (username.Length is < 3 or > 16 || username.Any(character => !char.IsAsciiLetterOrDigit(character) && character != '_')))
         {
             VersionStatus.Text = "Offline names must be 3–16 letters, numbers, or underscores.";
             OfflineNameBox.Focus();
@@ -93,15 +123,16 @@ public partial class MainWindow : Window
         }
 
         _launching = true;
-        if (sender is Button button) button.IsEnabled = false;
+        if (sender is Button launchButton) launchButton.IsEnabled = false;
         VersionStatus.Text = $"Preparing Minecraft {version.Id}. The first install can take a while…";
         try
         {
             var gamePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GalaxyClient", "game");
             var launcher = new MinecraftLauncher(new MinecraftPath(gamePath));
+            var session = _microsoftSession ?? MSession.CreateOfflineSession(username);
             var process = await launcher.InstallAndBuildProcessAsync(version.Id, new MLaunchOption
             {
-                Session = MSession.CreateOfflineSession(username),
+                Session = session,
                 MaximumRamMb = 3072,
                 GameLauncherName = "GalaxyClient",
                 GameLauncherVersion = "0.1.0"
@@ -109,7 +140,8 @@ public partial class MainWindow : Window
             process.EnableRaisingEvents = true;
             process.Exited += (_, _) => Dispatcher.Invoke(() => VersionStatus.Text = $"Minecraft {version.Id} closed.");
             process.Start();
-            VersionStatus.Text = $"Minecraft {version.Id} launched as offline profile {username}.";
+            var profileName = _microsoftSession?.Username ?? username;
+            VersionStatus.Text = $"Minecraft {version.Id} launched as {profileName}.";
         }
         catch (Exception ex)
         {
@@ -119,7 +151,7 @@ public partial class MainWindow : Window
         finally
         {
             _launching = false;
-            if (sender is Button launchButton) launchButton.IsEnabled = true;
+            if (sender is Button button) button.IsEnabled = true;
         }
     }
 
