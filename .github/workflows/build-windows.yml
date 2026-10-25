@@ -22,7 +22,7 @@ jobs:
           - variant: win-x64-framework-dependent
             runtime: win-x64
             self_contained: false
-            compression: true
+            compression: false
           - variant: win-x86-portable
             runtime: win-x86
             self_contained: true
