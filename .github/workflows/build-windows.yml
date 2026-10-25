@@ -19,22 +19,32 @@ jobs:
             runtime: win-x64
             self_contained: true
             compression: true
+            single_file: true
           - variant: win-x64-framework-dependent
             runtime: win-x64
             self_contained: false
             compression: false
+            single_file: true
           - variant: win-x86-portable
             runtime: win-x86
             self_contained: true
             compression: true
+            single_file: true
           - variant: win-arm64-portable
             runtime: win-arm64
             self_contained: true
             compression: true
+            single_file: true
           - variant: win-x64-uncompressed
             runtime: win-x64
             self_contained: true
             compression: false
+            single_file: true
+          - variant: win-x64-folder
+            runtime: win-x64
+            self_contained: true
+            compression: false
+            single_file: false
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -47,16 +57,23 @@ jobs:
           dotnet publish .\GalaxyClient.csproj --configuration Release
           --runtime ${{ matrix.runtime }}
           --self-contained ${{ matrix.self_contained }}
-          -p:PublishSingleFile=true
+          -p:PublishSingleFile=${{ matrix.single_file }}
           -p:IncludeNativeLibrariesForSelfExtract=true
           -p:EnableCompressionInSingleFile=${{ matrix.compression }}
           --output .\publish\${{ matrix.variant }}
-      - name: Name executable variant
-        run: Copy-Item ".\publish\${{ matrix.variant }}\GalaxyClient.exe" ".\publish\GalaxyClient-${{ matrix.variant }}.exe"
-      - name: Upload executable variant
+      - name: Upload single-file executable
+        if: ${{ matrix.single_file }}
         uses: actions/upload-artifact@v4
         with:
           name: GalaxyClient-${{ matrix.variant }}
-          path: publish/GalaxyClient-${{ matrix.variant }}.exe
+          path: publish/${{ matrix.variant }}/GalaxyClient.exe
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload folder package
+        if: ${{ !matrix.single_file }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: GalaxyClient-${{ matrix.variant }}
+          path: publish/${{ matrix.variant }}/**
           if-no-files-found: error
           retention-days: 14
