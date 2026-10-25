@@ -1,11 +1,14 @@
-using System.Net.Http.Json;
 using System.Diagnostics;
 using System.Net.Http;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using CmlLib.Core;
+using CmlLib.Core.Auth;
+using CmlLib.Core.ProcessBuilder;
 
 namespace GalaxyClient;
 
@@ -16,6 +19,7 @@ public partial class MainWindow : Window
     private static readonly HttpClient Http = CreateHttpClient();
     private MinecraftManifest? _manifest;
     private bool _initializing;
+    private bool _launching;
 
     public MainWindow()
     {
@@ -71,6 +75,53 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void InstallAndPlay_Click(object sender, RoutedEventArgs e)
+    {
+        if (_launching) return;
+        if (VersionList.SelectedItem is not MinecraftVersion version)
+        {
+            VersionStatus.Text = "Select a Minecraft version first.";
+            return;
+        }
+        var username = OfflineNameBox.Text.Trim();
+        if (username.Length is < 3 or > 16 || username.Any(character => !char.IsAsciiLetterOrDigit(character) && character != '_'))
+        {
+            VersionStatus.Text = "Offline names must be 3–16 letters, numbers, or underscores.";
+            OfflineNameBox.Focus();
+            return;
+        }
+
+        _launching = true;
+        if (sender is Button button) button.IsEnabled = false;
+        VersionStatus.Text = $"Preparing Minecraft {version.Id}. The first install can take a while…";
+        try
+        {
+            var gamePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GalaxyClient", "game");
+            var launcher = new MinecraftLauncher(new MinecraftPath(gamePath));
+            var process = await launcher.InstallAndBuildProcessAsync(version.Id, new MLaunchOption
+            {
+                Session = MSession.CreateOfflineSession(username),
+                MaximumRamMb = 3072,
+                GameLauncherName = "GalaxyClient",
+                GameLauncherVersion = "0.1.0"
+            });
+            process.EnableRaisingEvents = true;
+            process.Exited += (_, _) => Dispatcher.Invoke(() => VersionStatus.Text = $"Minecraft {version.Id} closed.");
+            process.Start();
+            VersionStatus.Text = $"Minecraft {version.Id} launched as offline profile {username}.";
+        }
+        catch (Exception ex)
+        {
+            VersionStatus.Text = "Minecraft could not be installed or launched. Check the connection and try again.";
+            MessageBox.Show(this, ex.Message, "Galaxy Client", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            _launching = false;
+            if (sender is Button button) button.IsEnabled = true;
+        }
+    }
+
     private async void Search_Click(object sender, RoutedEventArgs e) => await SearchProjectsAsync();
 
     private async void SearchBox_KeyDown(object sender, KeyEventArgs e)
@@ -97,20 +148,17 @@ public partial class MainWindow : Window
             response.EnsureSuccessStatusCode();
             await using var stream = await response.Content.ReadAsStreamAsync();
             using var document = await JsonDocument.ParseAsync(stream);
-            var items = document.RootElement.GetProperty("hits").EnumerateArray()
-                .Select(hit =>
-                {
-                    var id = hit.GetProperty("project_id").GetString() ?? string.Empty;
-                    var slug = hit.TryGetProperty("slug", out var slugValue) && slugValue.ValueKind == JsonValueKind.String
-                        ? slugValue.GetString() : null;
-                    var title = hit.TryGetProperty("title", out var titleValue) ? titleValue.GetString() ?? "Untitled project" : "Untitled project";
-                    var description = hit.TryGetProperty("description", out var descriptionValue) ? descriptionValue.GetString() ?? string.Empty : string.Empty;
-                    var author = hit.TryGetProperty("author", out var authorValue) ? authorValue.GetString() ?? "Unknown author" : "Unknown author";
-                    var downloads = hit.TryGetProperty("downloads", out var downloadsValue) && downloadsValue.TryGetInt64(out var count) ? count : 0;
-                    return new ModrinthProject(title, description, $"by {author} • {downloads:N0} downloads",
-                        $"https://modrinth.com/{ProjectPath(projectType)}/{Uri.EscapeDataString(string.IsNullOrWhiteSpace(slug) ? id : slug)}");
-                })
-                .ToList();
+            var items = document.RootElement.GetProperty("hits").EnumerateArray().Select(hit =>
+            {
+                var id = hit.GetProperty("project_id").GetString() ?? string.Empty;
+                var slug = hit.TryGetProperty("slug", out var slugValue) && slugValue.ValueKind == JsonValueKind.String ? slugValue.GetString() : null;
+                var title = hit.TryGetProperty("title", out var titleValue) ? titleValue.GetString() ?? "Untitled project" : "Untitled project";
+                var description = hit.TryGetProperty("description", out var descriptionValue) ? descriptionValue.GetString() ?? string.Empty : string.Empty;
+                var author = hit.TryGetProperty("author", out var authorValue) ? authorValue.GetString() ?? "Unknown author" : "Unknown author";
+                var downloads = hit.TryGetProperty("downloads", out var downloadsValue) && downloadsValue.TryGetInt64(out var count) ? count : 0;
+                return new ModrinthProject(title, description, $"by {author} • {downloads:N0} downloads",
+                    $"https://modrinth.com/{ProjectPath(projectType)}/{Uri.EscapeDataString(string.IsNullOrWhiteSpace(slug) ? id : slug)}");
+            }).ToList();
             ProjectList.ItemsSource = items;
             SearchStatus.Text = $"Showing {items.Count} results";
         }
