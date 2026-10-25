@@ -8,4 +8,7 @@
     <AssemblyName>GalaxyClient</AssemblyName>
     <RootNamespace>GalaxyClient</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CmlLib.Core" Version="4.1.0" />
+  </ItemGroup>
 </Project>
